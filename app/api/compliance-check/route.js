@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import mammoth from "mammoth";
+import pdfParse from "pdf-parse";
 import Tesseract from "tesseract.js";
 import OpenAI from "openai";
 
@@ -67,7 +68,17 @@ const severityPoints = { critical: 20, high: 10, medium: 5, low: 2 };
 
 async function extractTextFromPDF(filePath) {
   // Implement PDF extraction here (e.g., use pdf-parse or an OCR fallback)
-  return "";
+  try {
+    const fileBuffer = await fs.readFile(filePath);
+    const pdfData = await pdfParse(fileBuffer);
+    const text = pdfData.text || "";
+
+    return text.trim();
+  } catch (err) {
+    console.error("PDF extraction failed:", err);
+    return "";
+  }
+
 }
 
 async function extractTextFromDocx(filePath) {
@@ -227,6 +238,8 @@ export async function POST(req) {
           status: "error",
           message:
             "This endpoint expects a multipart/form-data upload (use fetch + FormData).",
+          error:
+            "This endpoint expects a multipart/form-data upload (use fetch + FormData).",
         }),
         { status: 400, headers: { "content-type": "application/json" } }
       );
@@ -239,6 +252,7 @@ export async function POST(req) {
         JSON.stringify({
           status: "error",
           message: "No file uploaded (field 'file' or 'document').",
+          error: "No file uploaded (field 'file' or 'document').",
         }),
         { status: 400, headers: { "content-type": "application/json" } }
       );
@@ -273,6 +287,7 @@ export async function POST(req) {
         JSON.stringify({
           status: "error",
           message: "No extractable text found.",
+          error: "No extractable text found.",
         }),
         { status: 400, headers: { "content-type": "application/json" } }
       );
@@ -360,6 +375,7 @@ export async function POST(req) {
       JSON.stringify({
         status: "error",
         message: e?.message || "Processing error",
+        error: e?.message || "Processing error",
       }),
       { status: 500, headers: { "content-type": "application/json" } }
     );

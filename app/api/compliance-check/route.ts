@@ -5,14 +5,21 @@ import { v4 as uuid } from "uuid";
 import tesseract from "node-tesseract-ocr";
 import { NextResponse } from "next/server";
 import mammoth from "mammoth";
-const pdfParse = require("pdf-parse");
+import { extractText } from "unpdf";
 
 const TMP_DIR = path.join(process.cwd(), "tmp_uploads");
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
-async function extractTextFromPDF(buffer: Buffer) {
-  const data = await pdfParse(buffer);
-  return data.text || "";
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  try {
+    const uint8Array = new Uint8Array(buffer);
+    const { text } = await extractText(uint8Array, { mergePages: true });
+    console.log(text);
+    return text || "";
+  } catch (err) {
+    console.error("PDF extraction failed:", err);
+    throw new Error("Failed to extract text from PDF");
+  }
 }
 async function extractTextFromImage(filePath: string) {
   return await tesseract.recognize(filePath, { lang: "eng", oem: 1, psm: 3 });
